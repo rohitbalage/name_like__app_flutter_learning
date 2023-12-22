@@ -1,6 +1,6 @@
-# name_maker
+# name_like_maker
 
-A new Flutter project.
+Like the names and keep it into a new tab
 
 ## Getting Started
 
