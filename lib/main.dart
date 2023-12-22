@@ -1,5 +1,6 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -51,56 +52,117 @@ class MyAppState extends ChangeNotifier {
    
 }
 
+class MyHomePage extends StatefulWidget {
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
 
+class _MyHomePageState extends State<MyHomePage> {
 
-class MyHomePage extends StatelessWidget {
+  var selectedIndex = 0;  
   @override
   Widget build(BuildContext context) {
-    // Every widget defines a build() method that's automatically called every time the widget's 
-    //circumstances change so that the widget is always up to date.
-    var appState = context.watch<MyAppState>();  //MyHomePage tracks changes to the app's current state using the watch method.
-    var pair = appState.current;   
-    return Scaffold(  // Every build method must return a widget or (more typically) a nested tree of widgets. In this case, the top-level widget is Scaffold. You aren't going to work with Scaffold in this codelab,
-                        //  but it's a helpful widget and is found in the vast majority of real-world Flutter apps.
-      body: Center(
-        child: Column(  
-          mainAxisAlignment: MainAxisAlignment.center, 
-           // Column is one of the most basic layout widgets in Flutter. It takes any number of children and puts them in a column from top to bottom. By default, 
-          //the column visually places its children at the top. You'll soon change this so that the column is centered.
-          children: [
-          //You changed this Text widget in the first step
-            BigCard(pair: pair), // This second Text widget takes appState, and accesses the only member of that class, 
-            // current (which is a WordPair). WordPair provides several helpful getters, such as asPascalCase or asSnakeCase. Here, we use asLowerCase but you can change this now if you prefer one of the alternatives.
-             SizedBox(height: 10),
-            Row(
-               mainAxisSize: MainAxisSize.min, 
+Widget page;
+switch (selectedIndex) {
+  case 0:
+    page = GeneratorPage();
+    break;
+  case 1:
+    page = FavoritesPage();
+    break;
+  default:
+    throw UnimplementedError('no widget for $selectedIndex');
+}
+
+
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Scaffold(
+          body: Row(
+            children: [
+              SafeArea(
+                child: NavigationRail(
+                  extended: constraints.maxWidth >= 600, 
+                  destinations: [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.home),
+                      label: Text('Home'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.favorite),
+                      label: Text('Favorites'),
+                    ),
+                  ],
+                selectedIndex: selectedIndex,  
+                  onDestinationSelected: (value) {
+                  setState(() {
+                    selectedIndex = value;
+                  });
               
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                
                   },
-                  child: Text('Like'),
                 ),
-
-           
-
-                ElevatedButton(
-                  onPressed: () {
-                    appState.getNext();
-                  },
-                  child: Text('Next'),
+              ),
+              Expanded(
+                child: Container(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  child: page,
                 ),
-              ],
-            ),
-            /* Notice how Flutter code makes heavy use of trailing commas. This particular comma doesn't need to be here, because children is the last (and also only) member of this particular Column parameter list. Yet it is generally a good idea to use trailing commas: they make adding more members trivial, and 
-            they also serve as a hint for Dart's auto-formatter to put a newline there. For more information, see Code formatting. */
-          ],
-        ),
+              ),
+            ],
+          ),
+        );
+      }
+    );
+  }
+}
+
+
+class GeneratorPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var pair = appState.current;
+
+    IconData icon;
+    if (appState.favorites.contains(pair)) {
+      icon = Icons.favorite;
+    } else {
+      icon = Icons.favorite_border;
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          BigCard(pair: pair),
+          SizedBox(height: 10),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  appState.toggleFavorite();
+                },
+                icon: Icon(icon),
+                label: Text('Like'),
+              ),
+              SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  appState.getNext();
+                },
+                child: Text('Next'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
+
+
 
 class BigCard extends StatelessWidget {
   const BigCard({
@@ -123,6 +185,34 @@ class BigCard extends StatelessWidget {
          child: Text(pair.asLowerCase, style: style,  semanticsLabel: "${pair.first} ${pair.second}",),
         
       ),
+    );
+  }
+}
+
+class FavoritesPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+
+    if (appState.favorites.isEmpty) {
+      return Center(
+        child: Text('No favorites yet.'),
+      );
+    }
+
+    return ListView(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text('You have '
+              '${appState.favorites.length} favorites:'),
+        ),
+        for (var pair in appState.favorites)
+          ListTile(
+            leading: Icon(Icons.favorite),
+            title: Text(pair.asLowerCase),
+          ),
+      ],
     );
   }
 }
